@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AIC · One Building, Five Pillars</title>
+<style>
+  :root{--ink:#eef2ff;--cyan:#2DD4F8;--blue:#5FA8FF;--font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#04070f;color:var(--ink);font-family:var(--font);overflow-x:hidden}
+  /* fixed video background */
+  #bg{position:fixed;inset:0;z-index:0;overflow:hidden;background:#04070f}
+  #vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  #bg::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(130% 120% at 50% 28%, transparent 42%, rgba(4,7,15,.62) 100%)}
+  /* tall scroll track */
+  #scroller{position:relative;z-index:1;height:600vh}
+  /* foreground parallax captions (fixed, fade by scroll progress) */
+  .cap{position:fixed;left:0;right:0;top:50%;z-index:2;text-align:center;padding:0 8vw;
+       opacity:0;transform:translateY(40px);pointer-events:none;will-change:opacity,transform}
+  .cap .k{font-size:.82rem;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan);font-weight:700;margin-bottom:1rem}
+  .cap h1{font-size:clamp(2.8rem,7.5vw,6.4rem);font-weight:800;line-height:1.02;letter-spacing:-.02em}
+  .cap h2{font-size:clamp(2rem,5.4vw,4.2rem);font-weight:800;line-height:1.05;letter-spacing:-.015em}
+  .cap p{font-size:clamp(1rem,1.6vw,1.35rem);color:#cfe0ff;margin:1rem auto 0;max-width:58ch;line-height:1.5}
+  .grad{background:linear-gradient(100deg,#5FA8FF,#2DD4F8);-webkit-background-clip:text;background-clip:text;color:transparent}
+  #bar{position:fixed;left:0;top:0;height:4px;width:0;z-index:5;
+       background:linear-gradient(90deg,#5FA8FF,#2DD4F8);box-shadow:0 0 14px rgba(45,212,248,.6)}
+  #hint{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:5;color:#9fb6d8;
+        font-size:.78rem;letter-spacing:.14em;font-weight:600;opacity:.85;animation:bob 2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)}}
+  #loading{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;gap:.6rem;align-items:center;justify-content:center;
+           background:#04070f;color:#9fb6d8;font-size:.9rem;letter-spacing:.08em;text-align:center;transition:opacity .6s}
+  #loading b{color:#eef2ff;font-size:1.1rem;letter-spacing:0}
+  @media (prefers-reduced-motion:reduce){#hint{animation:none}}
+</style>
+</head>
+<body>
+  <div id="bg"><video id="vid" muted playsinline preload="auto" src="building.mp4"></video></div>
+  <div id="bar"></div>
+  <div id="scroller"></div>
+
+  <div class="cap" data-i="0"><div class="k">Alexander Innovation Centre · 570 Dunsmuir St</div><h1>One building.<br><span class="grad">Five pillars.</span></h1><p>Scroll to travel up through the Centre.</p></div>
+  <div class="cap" data-i="1"><div class="k">Floor 1 · The foundation</div><h2>Canadian AI <span class="grad">Infrastructure</span></h2><p>Sovereign compute, hosted in Canada, for Canadian organizations.</p></div>
+  <div class="cap" data-i="2"><div class="k">Floor 2</div><h2>Applied AI <span class="grad">Research</span></h2><p>Research grounded in real use, built to reach production.</p></div>
+  <div class="cap" data-i="3"><div class="k">Floor 3</div><h2>Incubation &amp; <span class="grad">Acceleration</span></h2><p>Where validated work becomes companies with real customers.</p></div>
+  <div class="cap" data-i="4"><div class="k">Floor 4</div><h2>Corporate <span class="grad">Training</span></h2><p>AI fluency tied to each organization's real workflows.</p></div>
+  <div class="cap" data-i="5"><div class="k">Floor 5 · The community floor</div><h2>Industry <span class="grad">Innovation Nights</span></h2><p>Where the ecosystem meets, monthly, open to all.</p></div>
+  <div class="cap" data-i="6"><h2>Five pillars. <span class="grad">One ecosystem.</span></h2><p>One coordinated model, under one roof in downtown Vancouver.</p></div>
+
+  <div id="hint">SCROLL ↓</div>
+  <div id="loading"><b>Loading the building…</b><span id="lsub">preparing video</span></div>
+
+<script>
+  const vid=document.getElementById('vid'), bar=document.getElementById('bar'),
+        loading=document.getElementById('loading'), lsub=document.getElementById('lsub'),
+        caps=[...document.querySelectorAll('.cap')];
+  // scroll-progress window for each caption [from,to]
+  const ranges=[[0,.12],[.13,.28],[.29,.44],[.45,.60],[.61,.76],[.77,.92],[.93,1]];
+  let dur=0, targetT=0, curT=0, ready=false;
+
+  vid.addEventListener('loadedmetadata',()=>{
+    dur=vid.duration||1; ready=true;
+    loading.style.opacity=0; setTimeout(()=>loading.style.display='none',650);
+  });
+  vid.addEventListener('error',()=>{ lsub.textContent='Add building.mp4 to this folder, then reload.'; });
+
+  function progress(){
+    const h=document.documentElement.scrollHeight-window.innerHeight;
+    return h>0 ? Math.min(1,Math.max(0,window.scrollY/h)) : 0;
+  }
+  function onScroll(){
+    const p=progress();
+    bar.style.width=(p*100).toFixed(2)+'%';
+    if(ready) targetT=p*dur;
+    caps.forEach((c,idx)=>{
+      const a=ranges[idx][0], b=ranges[idx][1];
+      let o=0, ty=46;
+      if(p>=a && p<=b){
+        const local=(p-a)/(b-a);          // 0..1 within window
+        o=Math.sin(local*Math.PI);        // fade in then out
+        ty=(0.5-local)*-70;               // parallax drift upward
+      } else if(p>b){ ty=-35; }
+      c.style.opacity=o.toFixed(3);
+      c.style.transform='translateY('+ty.toFixed(1)+'px)';
+    });
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);
+
+  // smooth scrub: ease video.currentTime toward the scroll target
+  function tick(){
+    if(ready){
+      curT += (targetT-curT)*0.12;
+      if(Math.abs(targetT-curT)>0.008){ try{ vid.currentTime=curT; }catch(e){} }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  onScroll();
+</script>
+</body>
+</html>

@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise AI Workflow Automation, AIC</title>
+<script type="importmap">
+{ "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+  :root{
+    --bg:#0a0e1a;
+    --bg2:#111729;
+    --panel:#161d31;
+    --ink:#eef2ff;
+    --muted:#9aa6c4;
+    --accent:#6c8cff;
+    --accent2:#28d2b3;
+    --accent3:#ffb454;
+    --line:rgba(255,255,255,.08);
+    --card:rgba(255,255,255,.04);
+    --radius:18px;
+    --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--font);
+    background:radial-gradient(1200px 800px at 80% -10%,#1b2b4d,transparent),
+               radial-gradient(900px 700px at -10% 110%,#10243a,transparent),
+               var(--bg);
+    color:var(--ink);
+    overflow:hidden;
+  }
+  /* ---------- deck ---------- */
+  .deck{position:fixed;inset:0;}
+  .slide{
+    position:absolute;inset:0;
+    display:none;
+    flex-direction:column;
+    justify-content:center;
+    padding:6vh 8vw 9vh;
+    animation:fade .5s ease;
+  }
+  .slide.active{display:flex}
+  @keyframes fade{from{opacity:0;transform:scale(.992)}to{opacity:1;transform:none}}
+
+  /* ---------- entrance animations ---------- */
+  @keyframes riseIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+  .slide.active>*{animation:riseIn .6s cubic-bezier(.22,.8,.3,1) both}
+  .slide.active>*:nth-child(1){animation-delay:.05s}
+  .slide.active>*:nth-child(2){animation-delay:.14s}
+  .slide.active>*:nth-child(3){animation-delay:.23s}
+  .slide.active>*:nth-child(4){animation-delay:.32s}
+  .slide.active>*:nth-child(5){animation-delay:.41s}
+  .slide.active>*:nth-child(6){animation-delay:.50s}
+  /* let grids / pills / compare stagger their own children instead of moving as a block */
+  .slide.active>.pills,.slide.active>.compare,.slide.active>.grid{animation:none}
+  .slide.active .pills>*,.slide.active .compare>*,.slide.active .grid>*{animation:riseIn .55s cubic-bezier(.22,.8,.3,1) both}
+  .slide.active .pills>*:nth-child(1),.slide.active .compare>*:nth-child(1),.slide.active .grid>*:nth-child(1){animation-delay:.26s}
+  .slide.active .pills>*:nth-child(2),.slide.active .compare>*:nth-child(2),.slide.active .grid>*:nth-child(2){animation-delay:.36s}
+  .slide.active .pills>*:nth-child(3),.slide.active .grid>*:nth-child(3){animation-delay:.46s}
+  .slide.active .pills>*:nth-child(4),.slide.active .grid>*:nth-child(4){animation-delay:.56s}
+  .slide.active .grid>*:nth-child(5){animation-delay:.66s}
+  .slide.active .grid>*:nth-child(6){animation-delay:.76s}
+  /* ecosystem slide: role icons fly in around the support.png map */
+  .ecoslide{padding:0!important;overflow:hidden}
+  .eco{position:absolute;inset:0;z-index:1}
+  .slide.active>.eco{animation:none}
+  .econode{position:absolute;transform:translate(-50%,-50%);width:200px}
+  .econode__in{display:flex;flex-direction:column;align-items:center;gap:.6rem;opacity:0}
+  .econode .recircle{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;
+    border:2px solid rgba(143,214,255,.7);background:rgba(10,30,62,.34);
+    box-shadow:0 0 30px rgba(34,184,255,.45),inset 0 0 22px rgba(34,184,255,.22);backdrop-filter:blur(3px)}
+  .econode .recircle svg{width:46px;height:46px;stroke:#dbeaff}
+  .econode em{font-style:normal;font-weight:700;font-size:1rem;letter-spacing:.07em;text-transform:uppercase;
+    color:#eaf4ff;text-shadow:0 2px 12px rgba(0,0,0,.8);line-height:1.2;max-width:200px}
+  /* fly-in is triggered only after a click adds .eco-built */
+  .ecoslide.eco-built .econode__in{animation:ecoFly .6s cubic-bezier(.22,.8,.3,1) both}
+  .ecoslide.eco-built .econode:nth-child(1) .econode__in{animation-delay:.05s}
+  .ecoslide.eco-built .econode:nth-child(2) .econode__in{animation-delay:.18s}
+  .ecoslide.eco-built .econode:nth-child(3) .econode__in{animation-delay:.31s}
+  .ecoslide.eco-built .econode:nth-child(4) .econode__in{animation-delay:.44s}
+  .ecoslide.eco-built .econode:nth-child(5) .econode__in{animation-delay:.57s}
+  .ecoslide.eco-built .econode:nth-child(6) .econode__in{animation-delay:.70s}
+  .ecoslide.eco-built .econode:nth-child(7) .econode__in{animation-delay:.83s}
+  .ecoslide.eco-built .econode:nth-child(8) .econode__in{animation-delay:.96s}
+  .ecoslide.eco-built .econode:nth-child(9) .econode__in{animation-delay:1.09s}
+  .ecoslide.eco-built .econode:nth-child(10) .econode__in{animation-delay:1.22s}
+  @keyframes ecoFly{from{opacity:0;transform:translateY(34px) scale(.5)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.ecoslide.eco-built .econode__in{animation:none!important;opacity:1}}
+  /* click cue, hidden once the build runs */
+  .eco-hint{position:absolute;left:50%;bottom:6%;transform:translateX(-50%);z-index:2;font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:#bcd4ff;opacity:.78;pointer-events:none;animation:hintBlink 2s ease-in-out infinite}
+  .ecoslide.eco-built .eco-hint{display:none}
+  @keyframes hintBlink{0%,100%{opacity:.35}50%{opacity:.85}}
+  @media(max-width:760px){.econode{width:120px}.econode .recircle{width:64px;height:64px}.econode .recircle svg{width:30px;height:30px}.econode em{font-size:.74rem}}
+
+  /* sales workflows: features fly in point by point from the left */
+  .flyin{list-style:none;margin-top:1.6rem;display:flex;flex-direction:column;gap:1rem;max-width:none}
+  .flyin li{display:flex;align-items:flex-start;gap:1.1rem;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.1rem 1.3rem;backdrop-filter:blur(6px)}
+  .flyin .fnum{flex:0 0 auto;font-size:1.4rem;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:transparent;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;min-width:2.2ch}
+  .flyin .ftxt{display:flex;flex-direction:column;gap:.25rem}
+  .flyin .ftxt b{color:#fff;font-size:1.18rem;font-weight:700;line-height:1.25}
+  .flyin .ftxt span{color:var(--muted);font-size:1rem;line-height:1.45}
+  .flyin .wip{font-style:normal;font-size:.66rem;font-weight:800;letter-spacing:.1em;color:#ffb454;border:1px solid rgba(255,180,84,.4);background:rgba(255,180,84,.12);border-radius:999px;padding:.1rem .5rem;margin-left:.5rem;vertical-align:middle}
+  .slide.active>.flyin{animation:none}
+  .slide.active .flyin>li{animation:flyIn .6s cubic-bezier(.22,.8,.3,1) both}
+  .slide.active .flyin>li:nth-child(1){animation-delay:.25s}
+  .slide.active .flyin>li:nth-child(2){animation-delay:.55s}
+  .slide.active .flyin>li:nth-child(3){animation-delay:.85s}
+  .slide.active .flyin>li:nth-child(4){animation-delay:1.15s}
+  @keyframes flyIn{from{opacity:0;transform:translateX(-44px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.slide.active .flyin>li{animation:none!important}}
+
+  /* images get a soft scale-in */
+  .slide.active .diagimg{animation:imgIn .8s cubic-bezier(.22,.8,.3,1) both;animation-delay:.12s}
+  @keyframes imgIn{from{opacity:0;transform:scale(.965)}to{opacity:1;transform:none}}
+
+  /* animated gradient shimmer on accent text */
+  .gradient{background-size:220% auto;animation:shimmer 7s linear infinite}
+  @keyframes shimmer{to{background-position:220% center}}
+
+  /* slow ambient aurora drifting behind the slides */
+  body::before{content:"";position:fixed;inset:-25%;z-index:0;pointer-events:none;
+    background:radial-gradient(620px 620px at 18% 26%,rgba(108,140,255,.12),transparent 60%),
+               radial-gradient(720px 720px at 82% 74%,rgba(40,210,179,.10),transparent 62%);
+    animation:drift 22s ease-in-out infinite alternate;}
+  @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(48px,-36px) scale(1.1)}}
+
+  /* richer micro-interactions */
+  .demo-card{transition:transform .25s,box-shadow .25s,border-color .25s}
+  .demo-card:hover{transform:translateY(-4px);box-shadow:0 16px 44px rgba(40,210,179,.16)}
+  .card:hover{box-shadow:0 14px 40px rgba(108,140,255,.18)}
+  .pill{transition:transform .2s,border-color .2s,color .2s}
+  .pill:hover{transform:translateY(-2px);border-color:rgba(108,140,255,.5)}
+  .hud button:active{transform:scale(.92)}
+
+  @media (prefers-reduced-motion:reduce){
+    .slide,.slide.active>*,.slide.active .pills>*,.slide.active .compare>*,.slide.active .grid>*,.slide.active .diagimg,.gradient,body::before{animation:none!important}
+  }
+
+  /* ---------- UI polish ---------- */
+  .progress{box-shadow:0 0 14px rgba(108,140,255,.55);position:relative;overflow:hidden}
+  .progress::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-120%);animation:sheen 4s ease-in-out infinite}
+  @keyframes sheen{0%{transform:translateX(-120%)}55%,100%{transform:translateX(240%)}}
+  .counter{background:rgba(255,255,255,.05);border:1px solid var(--line);padding:.32rem .8rem;border-radius:999px;backdrop-filter:blur(6px)}
+  .hud button{background:rgba(22,29,49,.62);backdrop-filter:blur(8px);transition:transform .2s,border-color .2s,color .2s,box-shadow .2s}
+  .hud button:hover{box-shadow:0 8px 22px rgba(108,140,255,.30);transform:translateY(-2px)}
+  .slide.active .kicker::before{animation:lineGrow .8s cubic-bezier(.22,.8,.3,1) both;animation-delay:.08s}
+  @keyframes lineGrow{from{width:0;opacity:0}to{width:26px;opacity:1}}
+  @media (prefers-reduced-motion:reduce){ .progress::after,.slide.active .kicker::before{animation:none!important} }
+
+  /* full-bleed image slide (image carries its own chrome) */
+  .imgslide{padding:0!important}
+  .fullbleed-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#050b18}
+  body.hide-chrome .brandmark,body.hide-chrome .counter{display:none}
+
+  /* fading screenshot sequence */
+  .shots{position:relative;width:min(1040px,90%);aspect-ratio:16/9;margin:.4rem auto 0}
+  .shots img,.shots video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;border-radius:14px;box-shadow:0 12px 34px rgba(0,0,0,.4);transition:opacity .55s ease;z-index:1;background:#050b18}
+  .shots img.show,.shots video.show{opacity:1;z-index:2}
+  .shots .shint{position:absolute;left:50%;bottom:-2.2rem;transform:translateX(-50%);color:var(--muted);font-size:.78rem;letter-spacing:.04em;opacity:.7;white-space:nowrap}
+  @media (prefers-reduced-motion:reduce){.shots img{transition:none}}
+
+  .kicker{
+    display:inline-flex;align-items:center;gap:.5rem;
+    font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent2);font-weight:600;margin-bottom:1.1rem;
+  }
+  .kicker::before{content:"";width:26px;height:2px;background:var(--accent2);border-radius:2px}
+  h1{font-size:clamp(2.4rem,5.4vw,4.6rem);line-height:1.04;font-weight:800;letter-spacing:-.02em}
+  h2{font-size:clamp(1.9rem,3.6vw,3rem);line-height:1.08;font-weight:780;letter-spacing:-.015em;margin-bottom:1.6rem}
+  h3{font-size:1.15rem;font-weight:700}
+  p{font-size:clamp(1rem,1.5vw,1.25rem);line-height:1.6;color:var(--muted);max-width:60ch}
+  .lead{font-size:clamp(1.1rem,1.9vw,1.5rem);color:#cdd6f4;max-width:62ch;margin-top:1.4rem}
+  .gradient{background:linear-gradient(100deg,#6c8cff 0%,#28d2b3 60%,#ffb454 120%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  /* grids & cards */
+  .grid{display:grid;gap:1.1rem;margin-top:1.2rem}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:1.5rem 1.4rem;backdrop-filter:blur(6px);
+    transition:transform .25s,border-color .25s;
+  }
+  .card:hover{transform:translateY(-4px);border-color:rgba(108,140,255,.4)}
+  .card .tag{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  .card h3{margin:.5rem 0 .45rem;font-size:1.18rem}
+  .card p{font-size:.96rem;line-height:1.5}
+  .ico{font-size:1.7rem}
+  /* compact checked list inside cards */
+  ul.cklist{list-style:none;display:flex;flex-direction:column;gap:.55rem;margin-top:.3rem}
+  ul.cklist li{position:relative;padding-left:1.5rem;color:#dbe2f7;font-size:.96rem;line-height:1.4}
+  ul.cklist li::before{content:"";position:absolute;left:0;top:.5rem;width:9px;height:9px;border-radius:2px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+
+  /* agenda */
+  .agenda{margin-top:.4rem;max-width:780px}
+  .part{font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent2);font-weight:700;margin:1.5rem 0 .4rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  .part:first-child{margin-top:.3rem}
+  .arow{display:flex;align-items:baseline;gap:1.3rem;padding:.6rem 0}
+  .arow .num{font-size:1.5rem;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:-.02em;min-width:2.4ch}
+  .arow .atext{display:flex;align-items:baseline;gap:.9rem;flex-wrap:wrap}
+  .arow .atext h3{font-size:1.22rem;font-weight:700;line-height:1.2}
+  .arow .atext span{color:var(--muted);font-size:.98rem;line-height:1.4}
+
+  ul.clean{list-style:none;margin-top:1.2rem;display:flex;flex-direction:column;gap:.9rem}
+  ul.clean li{display:flex;gap:.85rem;align-items:flex-start;font-size:clamp(1rem,1.5vw,1.22rem);color:#dbe2f7;line-height:1.45}
+  ul.clean li b{color:#fff}
+  ul.clean li::before{content:"";flex:0 0 auto;width:11px;height:11px;margin-top:.45rem;border-radius:3px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2))}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:center}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-top:1.2rem}
+  .compare .col{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.6rem}
+  .compare .col.bad{border-color:rgba(255,120,120,.25)}
+  .compare .col.good{border-color:rgba(40,210,179,.4);background:rgba(40,210,179,.05)}
+  .compare h3{margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+  .compare ul{list-style:none;display:flex;flex-direction:column;gap:.7rem}
+  .compare li{color:var(--muted);font-size:1rem;line-height:1.4;padding-left:1.3rem;position:relative}
+  .compare li::before{position:absolute;left:0;top:0}
+  .compare .bad li::before{content:"–";color:#ff8a8a;font-weight:800}
+  .compare .good li::before{content:"+";color:var(--accent2);font-weight:800}
+
+  .pills{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.5rem}
+  .pill{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:.5rem 1rem;font-size:.92rem;color:#cdd6f4}
+  .pill b{color:var(--accent2)}
+
+  /* title-slide roadmap */
+  .roadmap{display:flex;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+  .rstep{flex:1;min-width:210px;display:flex;gap:.9rem;align-items:flex-start;
+    background:linear-gradient(155deg,rgba(108,140,255,.12),rgba(40,210,179,.05));
+    border:1px solid var(--line);border-radius:16px;padding:1.1rem 1.2rem;
+    transition:transform .25s,border-color .25s,box-shadow .25s}
+  .rstep:hover{transform:translateY(-6px);border-color:rgba(108,140,255,.55);box-shadow:0 18px 44px rgba(108,140,255,.20)}
+  .rnum{flex:0 0 auto;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
+    font-weight:800;font-size:1.15rem;color:#06122e;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow:0 6px 16px rgba(40,210,179,.30)}
+  .rlabel{display:flex;flex-direction:column;gap:.25rem}
+  .rlabel b{color:#fff;font-size:1.06rem;line-height:1.2;letter-spacing:-.01em}
+  .rlabel span{color:var(--muted);font-size:.84rem;line-height:1.3}
+  .slide.active>.roadmap{animation:none}
+  .slide.active .roadmap>*{animation:riseIn .55s cubic-bezier(.22,.8,.3,1) both}
+  .slide.active .roadmap>*:nth-child(1){animation-delay:.24s}
+  .slide.active .roadmap>*:nth-child(2){animation-delay:.34s}
+  .slide.active .roadmap>*:nth-child(3){animation-delay:.44s}
+  .slide.active .roadmap>*:nth-child(4){animation-delay:.54s}
+  @media(max-width:760px){.rstep{min-width:100%}}
+
+  /* ---------- AIC intro slides ---------- */
+  .aic{background:radial-gradient(1200px 840px at 50% 36%,#16407a 0%,#0b1f44 52%,#070f20 100%);background-size:cover;background-position:center;background-repeat:no-repeat}
+  .aic>*{position:relative;z-index:1}
+  .aic-hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(1500px 950px at 50% 44%,rgba(7,15,32,.58),rgba(7,15,32,.16) 76%)}
+  .gradient-aic{background:linear-gradient(100deg,#5FA8FF,#2DD4F8);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .aic .kicker{color:#6fd0ff}
+  .aic .kicker::before{background:#2DD4F8}
+  .aic .pill{background:rgba(95,168,255,.10);border-color:rgba(95,168,255,.32);color:#dbe9ff}
+  .aic .pill b{color:#8fe6ff}
+  .aic-hero h1{font-size:clamp(3.2rem,8.4vw,6.6rem);line-height:.98;letter-spacing:-.03em}
+  .aic-hero .lead{font-size:clamp(1.15rem,1.9vw,1.5rem);color:#cfe4ff}
+  .hero-meta{display:flex;align-items:center;justify-content:center;gap:1.5rem;margin-top:1.9rem;flex-wrap:wrap}
+  .hm{display:inline-flex;align-items:center;gap:.6rem;color:#e6f1ff;font-size:1.06rem;font-weight:600;letter-spacing:.015em}
+  .hm svg{flex:0 0 auto;opacity:.95}
+  .hm-dot{width:5px;height:5px;border-radius:50%;background:#2DD4F8;opacity:.7}
+
+  .videowrap{display:flex;gap:1.4rem;margin-top:1.4rem;flex-wrap:wrap}
+  .videowrap iframe{border:0;border-radius:14px;width:60%;aspect-ratio:16/9;min-width:380px}
+  .linkcard{flex:1;min-width:240px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.4rem;display:flex;flex-direction:column;gap:.9rem;justify-content:center}
+  .linkcard a{color:var(--accent);text-decoration:none;font-weight:600;word-break:break-word}
+  .linkcard a:hover{text-decoration:underline}
+  .timechip{align-self:flex-start;background:rgba(255,180,84,.14);color:var(--accent3);border:1px solid rgba(255,180,84,.3);padding:.3rem .8rem;border-radius:999px;font-size:.8rem;font-weight:700;letter-spacing:.06em}
+
+  .flow{display:flex;align-items:stretch;gap:.6rem;margin-top:1.6rem;flex-wrap:wrap}
+  .flow .step{flex:1;min-width:120px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1rem;text-align:center}
+  .flow .step .n{font-size:.75rem;color:var(--accent);font-weight:700;letter-spacing:.1em}
+  .flow .step h3{font-size:1rem;margin-top:.4rem}
+  .flow .step p{font-size:.82rem;margin-top:.35rem}
+  .flow .arrow{display:flex;align-items:center;color:var(--accent);font-size:1.5rem;font-weight:800}
+
+  .demo-card{background:linear-gradient(135deg,rgba(108,140,255,.12),rgba(40,210,179,.08));border:1px solid rgba(108,140,255,.3);border-radius:var(--radius);padding:1.7rem}
+  .demo-card h3{font-size:1.35rem;margin-bottom:.6rem;color:#fff}
+  .demo-card ul{list-style:none;display:flex;flex-direction:column;gap:.55rem;margin-top:.8rem}
+  .demo-card li{color:#cdd6f4;font-size:1rem;padding-left:1.4rem;position:relative}
+  .demo-card li::before{content:"▸";position:absolute;left:0;color:var(--accent2)}
+
+  .diagram{margin-top:.6rem;width:100%}
+  .diagram svg{width:100%;height:auto;max-height:64vh;display:block;margin:0 auto}
+  .diagimg{display:block;margin:0 auto;max-width:100%;max-height:60vh;width:auto;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .diagram text{font-family:var(--font)}
+
+  .center{align-items:center;text-align:center}
+  .center p{margin-left:auto;margin-right:auto}
+  .big-q{font-size:clamp(3rem,9vw,8rem);font-weight:800;letter-spacing:-.03em}
+
+  /* chrome */
+  .topbar{position:fixed;top:0;left:0;right:0;height:5px;background:rgba(255,255,255,.06);z-index:30}
+  .progress{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s}
+  .hud{position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 26px;z-index:30;pointer-events:none}
+  .hud .left{color:var(--muted);font-size:.82rem;letter-spacing:.05em;font-weight:600}
+  .hud .nav{display:flex;gap:.5rem;pointer-events:auto}
+  .hud button{background:var(--panel);border:1px solid var(--line);color:var(--ink);width:38px;height:38px;border-radius:10px;font-size:1.1rem;cursor:pointer;transition:.2s}
+  .hud button:hover{border-color:var(--accent);color:var(--accent)}
+  .counter{position:fixed;top:18px;right:24px;z-index:30;color:var(--muted);font-size:.85rem;font-weight:700;letter-spacing:.08em}
+  .brandmark{position:fixed;top:16px;left:26px;z-index:30;font-size:.82rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .brandmark b{color:var(--accent2)}
+
+  /* speaker notes */
+  .notes{position:fixed;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;background:rgba(8,11,20,.97);border-top:2px solid var(--accent);
+    padding:1.4rem 2rem 1.6rem;z-index:40;transform:translateY(110%);transition:transform .3s;backdrop-filter:blur(8px)}
+  .notes.show{transform:none}
+  .notes h4{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:.6rem}
+  .notes p{color:#cdd6f4;font-size:1rem;max-width:none;line-height:1.55}
+  .hint{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:30;color:var(--muted);font-size:.74rem;opacity:.6;pointer-events:none}
+
+  /* ---------- ALEBEX orb (title slide) ---------- */
+  .orb3d{position:relative;width:min(320px,80%);aspect-ratio:1;display:grid;place-items:center;margin-inline:auto}
+  .orb3d canvas{position:relative;z-index:1;width:100%!important;height:100%!important;display:block}
+  .orb3d__link{position:absolute;inset:6%;z-index:3;border-radius:50%}
+  .orb3d__hint{position:absolute;top:1%;right:-4%;z-index:5;pointer-events:none;font-weight:600;font-size:.9375rem;letter-spacing:.01em;white-space:nowrap;color:#07203F;padding:.45rem .95rem;border-radius:999px;background:linear-gradient(120deg,#8FE0FF,#22B8FF);box-shadow:0 6px 22px rgba(34,184,255,.45),inset 0 1px 0 rgba(255,255,255,.55);animation:orbHintBob 3.2s ease-in-out infinite}
+  .orb3d:hover .orb3d__hint{background:linear-gradient(120deg,#AFEAFF,#4FC6FF)}
+  .orb3d__tag{position:absolute;bottom:-2%;left:50%;transform:translateX(-50%);z-index:4;font-weight:600;font-size:.9375rem;white-space:nowrap;color:#E6F4FF;text-shadow:0 1px 14px rgba(6,30,70,.6);padding:.34rem .9rem;border-radius:999px;background:rgba(7,26,51,.45);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(8px)}
+  .orb3d.is-fallback::after{content:"";position:absolute;inset:18%;border-radius:50%;z-index:1;background:radial-gradient(circle at 40% 34%,#e6f4ff,#4fc6ff 44%,#22b8ff 78%,#7fe3e0 100%);box-shadow:inset -10px -16px 50px rgba(8,40,90,.4),0 0 60px rgba(34,184,255,.5);animation:orbPulse 5s ease-in-out infinite}
+  @keyframes orbHintBob{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-9px) rotate(1.5deg)}}
+  @keyframes orbPulse{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+  .slide.active>.orb3d{animation:none}
+
+  @media(max-width:760px){
+    .slide{padding:8vh 7vw 11vh}
+    .g3,.g2,.two,.compare{grid-template-columns:1fr}
+    .videowrap iframe{width:100%}
+    #alebexOrb{display:none}
+    #titleSlide h1,#titleSlide .lead,#titleSlide .roadmap{max-width:100%!important}
+  }
+  @media (prefers-reduced-motion:reduce){.orb3d__hint{animation:none}}
+</style>
+</head>
+<body>
+<!-- global SVG defs, always present so diagrams on any slide can reference them -->
+<svg width="0" height="0" style="position:absolute;left:-9999px" aria-hidden="true">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e9f1f3"/><stop offset="0.55" stop-color="#eef0ee"/><stop offset="1" stop-color="#f4eee2"/>
+    </linearGradient>
+    <radialGradient id="coreGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="0.7" stop-color="#ffffff"/><stop offset="1" stop-color="#eaf1ff"/>
+    </radialGradient>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="7" stdDeviation="13" flood-color="#1b2a4a" flood-opacity="0.13"/>
+    </filter>
+    <filter id="coreShadow" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#3358a8" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+</svg>
+<div class="topbar"><div class="progress" id="progress"></div></div>
+<div class="brandmark">AI Workflow Automation · <b>AIC</b></div>
+<div class="counter"><span id="cur">1</span> / <span id="tot">14</span></div>
+
+<div class="deck" id="deck">
+
+  <!-- INTRO 1 · WELCOME / INNOVATION NIGHT -->
+  <section class="slide active center aic aic-hero" style="background:url('aic_hero.png') center/cover no-repeat #0a1a3a" data-notes="Welcome, everyone, and thank you for being here. I'm Justin Hinchcliffe, Director of Business Development at the Alexander Innovation Centre. Over the next fifteen minutes I'll walk you through who we are, why we exist, and the five pillars that make up our platform, and how you can plug in.">
+    <img src="aic_logo_white.png" alt="Alexander Innovation Centre" style="height:104px;width:auto;margin:0 auto 1.1rem;display:block">
+    <div class="kicker">Alexander Innovation Centre</div>
+    <h1>AIC <span class="gradient-aic">Innovation Night</span></h1>
+    <div style="font-size:clamp(1.2rem,2.2vw,1.7rem);color:#8fe6ff;font-weight:700;letter-spacing:.01em;margin:.3rem 0">AI Workflow Automation</div>
+    <p class="lead">Hosted by the AIC (alexic.ca), with venue support from Alexander College.</p>
+    <div class="hero-meta">
+      <span class="hm"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2DD4F8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>June 23, 2026</span>
+      <span class="hm-dot"></span>
+      <span class="hm"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2DD4F8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.5s6.5-6.8 6.5-11.5a6.5 6.5 0 1 0-13 0c0 4.7 6.5 11.5 6.5 11.5z"/><circle cx="12" cy="10" r="2.4"/></svg>570 Dunsmuir Street, Vancouver</span>
+    </div>
+    <div style="margin-top:1.2rem;color:#aab9d6;font-size:1.05rem">Presented by <b style="color:#ffffff">Justin Hinchcliffe &amp; Allen Zhou</b></div>
+  </section>
+
+  <!-- INTRO 2 · VISION (icons fly in over support.png; advancing opens the Five Pillars walkthrough) -->
+  <section class="slide ecoslide" data-next="five-pillars.html" style="background:url('support.png') center/cover no-repeat #060d1f" data-notes="Our vision, to support BC's AI ecosystem. That ecosystem is made up of a lot of people: founders, builders, business professionals, researchers, employers, educators, investors, students, operators, and everyone in between. The roles fly in around the map one by one. When you advance from here, the Five Pillars walkthrough opens; at the end of it, click to continue to Alebex.">
+    <div class="eco">
+      <span class="econode" style="left:21%;top:14%"><span class="econode__in"><span class="recircle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></span><em>Founders</em></span></span>
+      <span class="econode" style="left:76%;top:14%"><span class="econode__in"><span class="recircle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><em>Operators</em></span></span>
+      <span class="econode" style="left:14%;top:32%"><span class="econode__in"><span class="recircle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span><em>Builders</em></span></span>
+      <span class="econode" style="left:83%;top:31%"><span class="econode__in"><span class="recircle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span><em>Investors</em></span></span>
+      <span class="econode" style="left:11%;top:51%"><span class="econode__in"><span class="recircle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span><em>Business professionals</em></span></span>
+      <span class="econode" style="left:87%;top:52%"><span class="econode__in"><span class="recircle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><em>Students</em></span></span>
+      <span class="econode" style="left:22%;top:67%"><span class="econode__in"><span class="recircle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M8 6h4v4a2 2 0 0 1-4 0z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></svg></span><em>Researchers</em></span></span>
+      <span class="econode" style="left:73%;top:64%"><span class="econode__in"><span class="recircle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><em>&amp; everyone in between</em></span></span>
+      <span class="econode" style="left:38%;top:80%"><span class="econode__in"><span class="recircle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><em>Employers</em></span></span>
+      <span class="econode" style="left:55%;top:81%"><span class="econode__in"><span class="recircle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 2 3 6 3s6-2 6-3v-5"/></svg></span><em>Educators</em></span></span>
+    </div>
+    <div class="eco-hint">Click to reveal the ecosystem</div>
+  </section>
+
+  <!-- ALEBEX, flagship product -->
+  <section class="slide center aic" id="alebex" data-notes="Alebex is AIC's flagship product, an agentic workforce platform combined with an AI voice engine.">
+    <div class="kicker">AIC flagship product</div>
+    <img src="alebex_logo.png" alt="Alebex" style="height:130px;width:auto;margin:.2rem auto 1.6rem;display:block">
+    <h2 style="margin-bottom:.4rem">Agentic Workforce Platform <span class="gradient-aic">+ AI Voice Engine</span></h2>
+  </section>
+
+  <!-- ALEBEX · VOICE ENGINE VIDEO -->
+  <section class="slide center aic" data-notes="Play the Alebex voice engine walkthrough. This shows the agentic voice AI in action, handling a live conversation end to end. Use the controls to play with sound.">
+    <div class="kicker">Alebex · Voice engine</div>
+    <h2 style="margin-bottom:1rem">See the <span class="gradient-aic">voice engine</span> in action</h2>
+    <video src="videos/alebex-voice-engine.mp4" controls playsinline preload="metadata" style="width:min(960px,86%);max-height:64vh;border-radius:16px;box-shadow:0 16px 44px rgba(0,0,0,.5);background:#04101f;margin:0 auto;display:block"></video>
+  </section>
+
+  <section class="slide" id="titleSlide" data-notes="Welcome. This is a roughly 10-minute session on enterprise AI workflow automation. Four parts: first, what agentic AI and ChatGPT agents are, and why being AI-native means redesigning the workflow, not just bolting on tools; second, the security and guardrails that make agents safe for real work; third, a live demo of the AIC Academic Advisor agent; and finally, how AIC helps enterprises adopt AI and helps SMEs apply for government funding.">
+    <div class="kicker">AIC Corporate Training</div>
+    <h1>Enterprise<br><span class="gradient">AI Workflow Automation</span></h1>
+    <p class="lead">How AI agents automate real work across your tools, and how AIC helps you redesign the workflow, deploy it safely, and fund it.</p>
+    <div class="roadmap" style="max-width:780px;display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="rstep"><span class="rnum">1</span><div class="rlabel"><b>Agents &amp; ChatGPT agents</b><span>What they are &amp; how they run</span></div></div>
+      <div class="rstep"><span class="rnum">2</span><div class="rlabel"><b>Security</b><span>Guardrails for real work</span></div></div>
+      <div class="rstep"><span class="rnum">3</span><div class="rlabel"><b>Demo</b><span>Academic Advisor &amp; Sales agents</span></div></div>
+      <div class="rstep"><span class="rnum">4</span><div class="rlabel"><b>AIC</b><span>Adopt AI &amp; fund it</span></div></div>
+    </div>
+  </section>
+
+  <section class="slide" data-notes="Definition first. The key word is 'goal.' A normal assistant answers a question you ask, one turn at a time. An agent is given a goal and a set of tools, and it figures out the steps, takes actions across apps, and only comes back when it needs a decision or when the job is done. Use the analogy. A chatbot is a smart intern who waits to be asked. An agent is a colleague you can hand a whole task to.">
+    <div class="kicker">Part 1 · Foundations</div>
+    <h2>So what <span class="gradient">is</span> Agentic AI?</h2>
+    <p class="lead">An AI you give a <b style="color:#fff">goal</b> to, not just a question. It plans the steps, uses your tools, takes action across apps, and checks in only when it needs a decision.</p>
+    <div class="diagram" style="margin-top:.4rem"><img class="diagimg" src="chatbot_vs_agent.png" alt="A chatbot versus an agent: a chatbot answers one turn at a time, waits, you copy-paste, and it forgets; an agent completes end-to-end tasks, runs on a schedule, uses connected apps, and remembers context" style="max-height:64vh"></div>
+  </section>
+
+  <section class="slide" data-notes="This is the loop that makes it 'agentic'. The user gives a goal, the agent makes a plan, acts using tools, then reflects on its own output. If the result is good enough it returns a response. If not, it loops back and tries again. The self-checking loop is the difference from a one-shot chatbot answer.">
+    <div class="kicker">Part 1 · Foundations</div>
+    <h2>The agentic loop: <span class="gradient">plan, act, reflect</span></h2>
+    <p class="lead" style="margin-top:.6rem;font-size:clamp(1rem,1.5vw,1.2rem)">Give it a goal and it runs a loop on its own. Make a plan, use tools to act, then check its own work. Good enough? It responds. Not yet? It tries again.</p>
+    <div class="diagram"><img class="diagimg" src="agentic_workflow.png" alt="Agentic workflow loop diagram"></div>
+  </section>
+
+  <section class="slide" data-notes="Walk the diagram left to right. A request comes in (a chat message). The agent follows its instructions and skills, reaches out to its tools (CRM, Email, Docs), and produces actions (a drafted email, a prepared CRM note). Point out the 'Review before send' step, that's the human-approval guardrail we'll come back to. Let the animation run while you narrate.">
+    <div class="kicker">Part 1 · Anatomy of an agent</div>
+    <h2>How an agent actually runs</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 1300 800" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="Agent workflow diagram">
+        <defs>
+          <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#e9f1f3"/>
+            <stop offset="0.55" stop-color="#eef0ee"/>
+            <stop offset="1" stop-color="#f4eee2"/>
+          </linearGradient>
+          <radialGradient id="coreGlow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#ffffff"/>
+            <stop offset="0.7" stop-color="#ffffff"/>
+            <stop offset="1" stop-color="#eaf1ff"/>
+          </radialGradient>
+          <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="7" stdDeviation="13" flood-color="#1b2a4a" flood-opacity="0.13"/>
+          </filter>
+          <filter id="coreShadow" x="-60%" y="-60%" width="220%" height="220%">
+            <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#3358a8" flood-opacity="0.22"/>
+          </filter>
+          <path id="p1" d="M370,225 C408,225 408,300 446,300"/>
+          <path id="p2" d="M370,440 C405,440 411,440 446,440"/>
+          <path id="p3" d="M370,665 C410,665 408,560 446,560"/>
+          <path id="p4" d="M854,300 C884,300 884,240 914,240"/>
+          <path id="p5" d="M854,440 C884,440 884,372 914,372"/>
+          <path id="p6" d="M854,600 C884,600 884,612 914,612"/>
+        </defs>
+
+        <rect x="0" y="0" width="1300" height="800" rx="26" fill="url(#bgGrad)"/>
+
+        <!-- connectors -->
+        <g fill="none" stroke-width="3.5" stroke-linecap="round">
+          <use xlink:href="#p1" stroke="#2f8fff" stroke-dasharray="11 9"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1s" repeatCount="indefinite"/></use>
+          <use xlink:href="#p2" stroke="#15c39a" stroke-dasharray="11 9"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.1s" repeatCount="indefinite"/></use>
+          <use xlink:href="#p3" stroke="#ff8a3d" stroke-dasharray="11 9"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.2s" repeatCount="indefinite"/></use>
+          <use xlink:href="#p4" stroke="#15c39a" stroke-dasharray="11 9"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.1s" repeatCount="indefinite"/></use>
+          <use xlink:href="#p5" stroke="#2f8fff" stroke-dasharray="11 9"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1s" repeatCount="indefinite"/></use>
+          <use xlink:href="#p6" stroke="#15c39a" stroke-dasharray="11 9"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.2s" repeatCount="indefinite"/></use>
+        </g>
+        <!-- traveling dots -->
+        <g>
+          <circle r="5" fill="#2f8fff"><animateMotion dur="2.2s" repeatCount="indefinite"><mpath xlink:href="#p1"/></animateMotion></circle>
+          <circle r="5" fill="#15c39a"><animateMotion dur="2.4s" repeatCount="indefinite"><mpath xlink:href="#p2"/></animateMotion></circle>
+          <circle r="5" fill="#ff8a3d"><animateMotion dur="2.6s" repeatCount="indefinite"><mpath xlink:href="#p3"/></animateMotion></circle>
+          <circle r="5" fill="#15c39a"><animateMotion dur="2.3s" repeatCount="indefinite"><mpath xlink:href="#p4"/></animateMotion></circle>
+          <circle r="5" fill="#2f8fff"><animateMotion dur="2.5s" repeatCount="indefinite"><mpath xlink:href="#p5"/></animateMotion></circle>
+          <circle r="5" fill="#15c39a"><animateMotion dur="2.7s" repeatCount="indefinite"><mpath xlink:href="#p6"/></animateMotion></circle>
+        </g>
+
+        <!-- LEFT: REQUEST -->
+        <g filter="url(#cardShadow)">
+          <rect x="70" y="150" width="300" height="150" rx="18" fill="#ffffff"/>
+        </g>
+        <text x="95" y="190" font-size="13" letter-spacing="2" font-weight="600" fill="#8b93a3">REQUEST (TRIGGER)</text>
+        <text x="95" y="224" font-size="20" font-weight="700" fill="#1c2430">New message</text>
+        <text x="95" y="248" font-size="12.5" fill="#9aa2b1">User asked in ChatGPT</text>
+        <rect x="95" y="262" width="78" height="26" rx="13" fill="#eef2f7"/>
+        <circle cx="111" cy="275" r="4" fill="#2f8fff"/>
+        <text x="122" y="279" font-size="13" font-weight="600" fill="#566">Chat</text>
+
+        <!-- LEFT: INSTRUCTIONS -->
+        <g filter="url(#cardShadow)">
+          <rect x="70" y="330" width="300" height="222" rx="18" fill="#ffffff"/>
+        </g>
+        <text x="95" y="368" font-size="13" letter-spacing="2" font-weight="600" fill="#8b93a3">INSTRUCTIONS</text>
+        <rect x="95" y="388" width="16" height="16" rx="5" fill="#15c39a"/>
+        <text x="122" y="401" font-size="16.5" font-weight="700" fill="#1c2430">Draft follow-up</text>
+        <text x="122" y="421" font-size="12.5" fill="#9aa2b1">Summarize the request</text>
+        <rect x="95" y="443" width="16" height="16" rx="5" fill="#15c39a"/>
+        <text x="122" y="456" font-size="16.5" font-weight="700" fill="#1c2430">Prepare CRM note</text>
+        <text x="122" y="476" font-size="12.5" fill="#9aa2b1">Capture the key details</text>
+        <rect x="95" y="498" width="16" height="16" rx="5" fill="#15c39a"/>
+        <text x="122" y="511" font-size="16.5" font-weight="700" fill="#1c2430">Review before send</text>
+        <text x="122" y="531" font-size="12.5" fill="#9aa2b1">Wait for teammate approval</text>
+
+        <!-- LEFT: SKILLS -->
+        <g filter="url(#cardShadow)">
+          <rect x="70" y="600" width="300" height="140" rx="18" fill="#ffffff"/>
+        </g>
+        <text x="95" y="638" font-size="13" letter-spacing="2" font-weight="600" fill="#8b93a3">SKILLS</text>
+        <rect x="93" y="652" width="254" height="34" rx="10" fill="#f6f7f9"/>
+        <circle cx="112" cy="669" r="4.5" fill="#ff8a3d"/>
+        <text x="126" y="674" font-size="14.5" font-weight="700" fill="#1c2430">follow-up-writer</text>
+        <rect x="93" y="694" width="254" height="34" rx="10" fill="#f6f7f9"/>
+        <circle cx="112" cy="711" r="4.5" fill="#ff8a3d"/>
+        <text x="126" y="716" font-size="14.5" font-weight="700" fill="#1c2430">customer-tone</text>
+
+        <!-- CENTER: AGENT -->
+        <g filter="url(#cardShadow)">
+          <rect x="446" y="210" width="408" height="470" rx="24" fill="#ffffff"/>
+        </g>
+        <text x="478" y="262" font-size="15" letter-spacing="2" font-weight="700" fill="#8b93a3">AGENT</text>
+        <rect x="734" y="238" width="92" height="32" rx="16" fill="#ffffff" stroke="#e7eaef"/>
+        <text x="780" y="259" font-size="13.5" font-weight="600" fill="#566" text-anchor="middle">Running</text>
+        <!-- core -->
+        <circle cx="650" cy="438" r="92" fill="none" stroke="#bcd4ff" stroke-width="2" opacity="0.7">
+          <animate attributeName="r" values="78;112" dur="2.4s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.6;0" dur="2.4s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="650" cy="438" r="78" fill="url(#coreGlow)" filter="url(#coreShadow)"/>
+        <g transform="translate(650,438) scale(1.15)">
+          <g>
+            <animateTransform attributeName="transform" type="translate" values="0 0;0 -5;0 0" dur="2.6s" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.4 0 0.2 1;0.4 0 0.2 1" repeatCount="indefinite"/>
+            <rect x="-60" y="-9" width="13" height="28" rx="6.5" fill="#c7cedb"/>
+            <rect x="47" y="-9" width="13" height="28" rx="6.5" fill="#c7cedb"/>
+            <line x1="0" y1="-44" x2="0" y2="-64" stroke="#c7cedb" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="0" cy="-70" r="8" fill="#ff6b5e"><animate attributeName="cy" values="-70;-74;-70" dur="2.6s" repeatCount="indefinite"/><animate attributeName="r" values="7.5;8.5;7.5" dur="1.6s" repeatCount="indefinite"/></circle>
+            <rect x="-50" y="-44" width="100" height="86" rx="31" fill="#f7f9fd" stroke="#e3e8f2" stroke-width="2"/>
+            <ellipse cx="-18" cy="3" rx="8.5" ry="8.5" fill="#1c2430"><animate attributeName="ry" values="8.5;8.5;1;8.5;8.5" keyTimes="0;0.46;0.5;0.54;1" dur="4s" repeatCount="indefinite"/></ellipse>
+            <ellipse cx="18" cy="3" rx="8.5" ry="8.5" fill="#1c2430"><animate attributeName="ry" values="8.5;8.5;1;8.5;8.5" keyTimes="0;0.46;0.5;0.54;1" dur="4s" repeatCount="indefinite"/></ellipse>
+            <circle cx="-33" cy="22" r="5" fill="#ffd1cb" opacity="0.85"/>
+            <circle cx="33" cy="22" r="5" fill="#ffd1cb" opacity="0.85"/>
+          </g>
+        </g>
+        <!-- processing bars -->
+        <g>
+          <rect x="468" y="596" width="86" height="11" rx="5.5" fill="#2f8fff"><animate attributeName="opacity" values="0.25;1;0.25" dur="1.4s" begin="0s" repeatCount="indefinite"/></rect>
+          <rect x="566" y="596" width="86" height="11" rx="5.5" fill="#2f8fff"><animate attributeName="opacity" values="0.25;1;0.25" dur="1.4s" begin="0.2s" repeatCount="indefinite"/></rect>
+          <rect x="664" y="596" width="86" height="11" rx="5.5" fill="#2f8fff"><animate attributeName="opacity" values="0.25;1;0.25" dur="1.4s" begin="0.4s" repeatCount="indefinite"/></rect>
+          <rect x="762" y="596" width="64" height="11" rx="5.5" fill="#2f8fff"><animate attributeName="opacity" values="0.25;1;0.25" dur="1.4s" begin="0.6s" repeatCount="indefinite"/></rect>
+        </g>
+
+        <!-- READY pill -->
+        <g filter="url(#cardShadow)">
+          <rect x="1006" y="56" width="234" height="46" rx="23" fill="#ffffff"/>
+        </g>
+        <circle cx="1036" cy="79" r="5.5" fill="#15c39a"/>
+        <text x="1052" y="84" font-size="16" font-weight="700" fill="#1c2430">Ready in ChatGPT</text>
+
+        <!-- RIGHT: TOOLS -->
+        <g filter="url(#cardShadow)">
+          <rect x="914" y="150" width="326" height="262" rx="18" fill="#ffffff"/>
+        </g>
+        <text x="940" y="190" font-size="13" letter-spacing="2" font-weight="600" fill="#8b93a3">TOOLS</text>
+        <g>
+          <rect x="938" y="202" width="278" height="56" rx="12" fill="#f6f7f9"/>
+          <circle cx="960" cy="222" r="5" fill="#2f8fff"/>
+          <text x="974" y="227" font-size="15.5" font-weight="700" fill="#1c2430">CRM</text>
+          <rect x="960" y="238" width="150" height="7" rx="3.5" fill="#e3e6ec"/>
+          <rect x="938" y="268" width="278" height="56" rx="12" fill="#f6f7f9"/>
+          <circle cx="960" cy="288" r="5" fill="#15c39a"/>
+          <text x="974" y="293" font-size="15.5" font-weight="700" fill="#1c2430">Email</text>
+          <rect x="960" y="304" width="150" height="7" rx="3.5" fill="#e3e6ec"/>
+          <rect x="938" y="334" width="278" height="56" rx="12" fill="#f6f7f9"/>
+          <circle cx="960" cy="354" r="5" fill="#ff8a3d"/>
+          <text x="974" y="359" font-size="15.5" font-weight="700" fill="#1c2430">Docs</text>
+          <rect x="960" y="370" width="150" height="7" rx="3.5" fill="#e3e6ec"/>
+        </g>
+
+        <!-- RIGHT: ACTIONS -->
+        <g filter="url(#cardShadow)">
+          <rect x="914" y="520" width="326" height="200" rx="18" fill="#ffffff"/>
+        </g>
+        <text x="940" y="560" font-size="13" letter-spacing="2" font-weight="600" fill="#8b93a3">ACTIONS</text>
+        <text x="940" y="592" font-size="16" font-weight="700" fill="#1c2430">Email drafted</text>
+        <rect x="940" y="602" width="252" height="8" rx="4" fill="#e3e6ec"/>
+        <rect x="940" y="602" width="40" height="8" rx="4" fill="#2f8fff"><animate attributeName="width" values="30;252;252" keyTimes="0;0.7;1" dur="3.2s" repeatCount="indefinite"/></rect>
+        <circle cx="1216" cy="606" r="6" fill="#2f8fff"/>
+        <text x="940" y="660" font-size="16" font-weight="700" fill="#1c2430">CRM note prepared</text>
+        <rect x="940" y="670" width="252" height="8" rx="4" fill="#e3e6ec"/>
+        <rect x="940" y="670" width="40" height="8" rx="4" fill="#15c39a"><animate attributeName="width" values="20;252;252" keyTimes="0;0.8;1" dur="3.6s" repeatCount="indefinite"/></rect>
+        <circle cx="1216" cy="674" r="6" fill="#15c39a"/>
+      </svg>
+    </div>
+  </section>
+
+  <section class="slide" data-notes="This is the heart of Part 1. The misconception is that 'AI-native' means giving every step an AI tool. On the left is the traditional organization: a linear, sequential workflow, research, analysis, team discussion, decision review, execution, and AI tools are simply bolted onto each existing step. The workflow stays sequential. On the right is the AI-native organization: work and decisions flow through a network. A human decision-maker sits at the center, surrounded by agents that run in parallel, synthesis, research, market scan, writing, data analysis, ops support. The core idea: this is not abrupt replacement, it is a gradual shift from tool-assisted workflows to agent-enabled organizational design." style="padding:3vh 2.5vw 2vh">
+    <div class="kicker" style="margin-bottom:.4rem">Part 1 · Organizational redesign</div>
+    <div class="diagram"><img class="diagimg" src="ai_native_organization.png" alt="AI-Native starts with organizational redesign: a traditional linear workflow versus an AI-native agent network" style="max-height:76vh"></div>
+  </section>
+
+  <section class="slide center" data-notes="Now translate the redesign into benefits. For employees, AI-native organizations reduce repetitive work and make context easier to access, so people spend more time on judgment, creativity, and collaboration. For managers, the benefit is visibility and operating leverage: fewer status meetings, faster research, clearer blockers, and more consistent output. For business owners, the value is productivity, lower operating cost, faster market response, scalable organizational knowledge, and stronger competitive advantage." style="padding:3vh 2.5vw 2vh">
+    <div class="kicker" style="margin-bottom:.35rem">Part 1 · Benefits</div>
+    <div class="diagram"><img class="diagimg" src="ai_native_benefits.png" alt="Benefits of an AI-Native Organization for employees, managers, and business owners" style="max-height:80vh"></div>
+  </section>
+
+  <!-- CHATGPT BUSINESS AGENTS · INTRO & CREATION (click-through sequence; videos at 3x) -->
+  <section class="slide center" data-notes="Walk through building a ChatGPT Business agent, step by step, click to advance. One: in ChatGPT Business your team's custom agents live in the sidebar, with Create agent. Two: you start by describing what the agent should do. Three: here, a social-media marketing agent. Four: ChatGPT builds it, naming it, writing instructions, setting the profile (video at 3x). Five: connect tools and apps, Gmail, Slack, Drive, Teams, even a custom MCP. Six: add reusable skills. Seven: it generates and attaches a skill (video at 3x). Eight: finally, schedule it to run automatically with Automations.">
+    <div class="kicker">Part 1 · The product</div>
+    <h2 style="margin-bottom:.3rem">ChatGPT Business Agents: <span class="gradient">intro &amp; creation</span></h2>
+    <div class="shots">
+      <img src="chatgpt1.png" data-cap="Your team's custom agents live in the sidebar" alt="ChatGPT Business workspace with custom agents and Create agent">
+      <img src="chatgpt2.png" data-cap="Create agent: describe what it should do" alt="What should your agent do? creation start screen">
+      <img src="Chatgpt3.png" data-cap="Example: a social-media marketing agent" alt="Typed prompt creating a marketing agent">
+      <video src="chatgpt4_3x.mp4" data-cap="ChatGPT builds the agent — name, instructions, profile (3× speed)" muted playsinline preload="metadata"></video>
+      <img src="chatgpt5.png" data-cap="Connect tools & apps — Gmail, Slack, Drive, MCP…" alt="Connecting apps and a custom MCP to the agent">
+      <img src="chatgpt6.png" data-cap="Add reusable skills" alt="Add skill dialog for the agent">
+      <video src="chatgpt7_3x.mp4" data-cap="It generates & attaches a reusable skill (3× speed)" muted playsinline preload="metadata"></video>
+      <img src="chatgpt8.png" data-cap="Schedule it to run with Automations" alt="Automations: schedule the agent to run daily">
+      <div class="shint">Click to reveal · 0 / 8</div>
+    </div>
+  </section>
+
+  <section class="slide" data-notes="The slide that wins over the management half of the room. The number one enterprise fear is that AI will go rogue or leak data. Workspace agents answer this with real controls. Admins enable agents by role (RBAC). Connectors can be locked to read-only. Permissions are scoped per app. The agent asks for human approval at sensitive steps. And every action is traceable. Frame constraints as what makes agents safe enough to actually deploy.">
+    <div class="kicker">Part 2 · Security</div>
+    <img class="diagimg" src="security_guardrails.png" alt="Guardrails that make AI agents safe for work: role-based access (RBAC), read-only, human approval, scoped & traceable" style="max-height:74vh">
+  </section>
+
+  <section class="slide imgslide" data-nochrome="1" data-notes="Run the live demo of the AIC Academic Advisor agent, built for Alexander College's advisor team. It does three jobs. One, it calculates a student's program GPA automatically. Two, it assists advisors with course planning, mapping University Transfer courses against the program requirements. Three, it handles student email as a human-in-the-loop pipeline: it auto-reads the incoming email, drafts a reply, an advisor reviews and approves, and only then does it send. Point out that the human-review step is the same guardrail we covered in Part 2. Narrate the goal you give it, then let it work; have screenshots ready as backup.">
+    <img class="fullbleed-img" src="advisor_full.png" alt="AIC Academic Advisor agent demo: email handling with human-in-the-loop review and course planning via an analysis engine">
+  </section>
+
+  <!-- DEMO SCREENSHOTS · ACADEMIC ADVISOR (auto-fading sequence) -->
+  <section class="slide center" data-notes="Walk through the AIC Academic Advisor agent in action: program GPA calculation, course planning, and the email draft with human review. The seven screenshots fade through automatically, in order.">
+    <div class="kicker">Part 3 · Demo</div>
+    <h2 style="margin-bottom:.4rem">Academic Advisor <span class="gradient">in action</span></h2>
+    <div class="shots">
+      <img src="acadamic%20advisor%20demo1.png" alt="Academic Advisor demo screenshot 1">
+      <img src="acadamic%20advisor%20demo2.png" alt="Academic Advisor demo screenshot 2">
+      <img src="acadamic%20advisor%20demo3.png" alt="Academic Advisor demo screenshot 3">
+      <img src="acadamic%20advisor%20demo4.png" alt="Academic Advisor demo screenshot 4">
+      <img src="acadamic%20advisor%20demo5.png" alt="Academic Advisor demo screenshot 5">
+      <img src="acadamic%20advisor%20demo6.png" alt="Academic Advisor demo screenshot 6">
+      <img src="acadamic%20advisor%20demo7.png" alt="Academic Advisor demo screenshot 7">
+      <div class="shint">Click to reveal · 0 / 7</div>
+    </div>
+  </section>
+
+  <!-- ACADEMIC ADVISOR AGENT · IMPACT -->
+  <section class="slide" data-notes="Here's the impact for Alexander College. A student case that used to take an advisor 10 to 20 minutes now takes about 5 minutes, and the agent can handle many cases in parallel rather than one at a time. In total it covers roughly 70 percent of an academic advisor's workload. The point isn't to replace advisors, it's that the time saved goes straight back into helping more students.">
+    <div class="kicker">Part 3 · Academic Advisor · Impact</div>
+    <h2>What it changes for <span class="gradient">advisors</span></h2>
+    <div class="grid g3" style="margin-top:1.4rem">
+      <div class="card" style="text-align:center">
+        <div class="gradient" style="font-size:clamp(2.4rem,5vw,3.6rem);font-weight:800;line-height:1">5 min</div>
+        <h3 style="margin-top:.5rem">Per student case</h3>
+        <p>Down from 10-20 minutes, a 3-4× speed-up.</p>
+      </div>
+      <div class="card" style="text-align:center">
+        <div class="gradient" style="font-size:clamp(2.4rem,5vw,3.6rem);font-weight:800;line-height:1">Parallel</div>
+        <h3 style="margin-top:.5rem">Many cases at once</h3>
+        <p>Handles multiple student cases simultaneously, not one at a time.</p>
+      </div>
+      <div class="card" style="text-align:center">
+        <div class="gradient" style="font-size:clamp(2.4rem,5vw,3.6rem);font-weight:800;line-height:1">70%</div>
+        <h3 style="margin-top:.5rem">Of advisor workload</h3>
+        <p>Covers about 70% of an AC academic advisor's work.</p>
+      </div>
+    </div>
+    <p class="lead" style="text-align:center;margin:1.4rem auto 0">The time saved goes straight back into <b style="color:#fff">helping more students</b>.</p>
+  </section>
+
+  <!-- HOW AGENTIC WORKFLOWS BENEFIT COMPANIES (showcase section intro) -->
+  <section class="slide" data-notes="Zoom out from the one demo to the bigger picture: agentic workflows pay off across the whole company. The same building blocks, connectors, skills, memory, human approval, apply to marketing, HR, finance, sales, support, and operations. Add concrete showcases here over time: social media content automation, HR, accounting, and more.">
+    <div class="kicker">Where it pays off</div>
+    <h2>How can agentic workflows <span class="gradient">benefit companies?</span></h2>
+    <div class="grid g3" style="margin-top:1.1rem">
+      <div class="card"><span class="tag">Marketing</span><h3>Social media content</h3><p>Draft, repurpose, and schedule posts across channels from a single brief.</p></div>
+      <div class="card"><span class="tag">People</span><h3>HR</h3><p>Screen résumés, run onboarding, and answer policy questions on demand.</p></div>
+      <div class="card"><span class="tag">Finance</span><h3>Accounting</h3><p>Reconcile transactions, categorize spend, and draft monthly reports.</p></div>
+      <div class="card"><span class="tag">Revenue</span><h3>Sales</h3><p>Follow up leads, keep the CRM current, and prep for every meeting.</p></div>
+      <div class="card"><span class="tag">Service</span><h3>Customer support</h3><p>Triage tickets, draft replies, and route to the right person.</p></div>
+      <div class="card"><span class="tag">Ops</span><h3>Operations</h3><p>Gather metrics, clean data, and run cross-tool workflows on a schedule.</p></div>
+    </div>
+  </section>
+
+  <section class="slide center" data-notes="Close on who we are and how we help. AIC helps enterprises become AI-native: we design and build agentic workflows, from the first pilot to an org-wide rollout. We also help small and mid-sized businesses with their government grant applications to support AI adoption. End with a clear call: let's find your first workflow to automate.">
+    <div class="kicker">Part 4 · AIC</div>
+    <img class="diagimg" src="aic_adoption_pathway.png" alt="The AI Adoption Pathway by AIC: Assess, Train, Implement, Measure, Optimize" style="max-height:68vh">
+    <p style="margin-top:.8rem;font-size:.98rem;color:#9aa6c4">AIC helps enterprises adopt AI end-to-end, and helps SMEs with their government grant applications. <b style="color:#fff">Let’s find your first workflow.</b></p>
+  </section>
+
+  <!-- B.C. EMPLOYER TRAINING GRANT (ETG) -->
+  <section class="slide" data-notes="A practical note on funding. The B.C. Employer Training Grant, the ETG, can help eligible B.C. employers offset the cost of AI training delivered through the Alexander Innovation Centre, supporting AI adoption to improve productivity, streamline operations, and enhance business performance. Up to 80 percent of eligible training costs may be covered, and it funds training for current employees and workforce development. It's open to small, medium, and large businesses as well as non-profits. AIC delivers the training itself, AI literacy and workforce readiness, AI tools for productivity and operations, workflow automation and process improvement, and responsible, practical AI implementation." style="padding:4vh 7vw 5vh">
+    <div class="kicker">Part 4 · Funding</div>
+    <h2 style="margin-bottom:.5rem">B.C. Employer Training Grant <span class="gradient">(ETG)</span></h2>
+    <p class="lead" style="margin-top:.2rem;font-size:clamp(1rem,1.5vw,1.18rem)">The ETG helps eligible B.C. employers offset the cost of AI training delivered through the Alexander Innovation Centre, supporting AI adoption to improve productivity, streamline operations, and enhance business performance.</p>
+    <div class="grid g3" style="margin-top:1.2rem;align-items:start">
+      <div class="card">
+        <span class="tag">Funding available</span>
+        <div class="gradient" style="font-size:clamp(2.4rem,5vw,3.4rem);font-weight:800;line-height:1;margin:.5rem 0 .2rem">Up to 80%</div>
+        <h3 style="margin-bottom:.6rem">of eligible training costs</h3>
+        <ul class="cklist">
+          <li>Covered through the ETG</li>
+          <li>Funds training for current employees &amp; workforce development</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="tag">Who can apply</span>
+        <h3 style="margin:.5rem 0 .6rem">Eligible employers</h3>
+        <ul class="cklist">
+          <li>Small, medium &amp; large businesses</li>
+          <li>Non-profit organizations</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="tag">How AIC helps</span>
+        <h3 style="margin:.5rem 0 .6rem">Training we deliver</h3>
+        <ul class="cklist">
+          <li>AI literacy &amp; workforce readiness</li>
+          <li>AI tools for productivity &amp; operations</li>
+          <li>Workflow automation &amp; process improvement</li>
+          <li>Responsible, practical AI implementation</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 Q&A -->
+  <section class="slide center" data-notes="Open the floor for questions. Point the audience to the QR code, scanning it opens the ALEBEX demo. Thank everyone for their time.">
+    <div class="kicker">Wrapping up</div>
+    <h2 style="margin-bottom:.4rem;font-size:clamp(2.8rem,6vw,4.6rem)">Thank you · <span class="gradient">Q&amp;A</span></h2>
+    <p class="lead" style="margin-top:.2rem;font-size:clamp(1.25rem,2.2vw,1.75rem)">Questions welcome, and scan to try the live demo.</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:3.4rem;margin-top:1.8rem;flex-wrap:wrap">
+      <div class="orb3d" id="alebexOrb" style="position:relative;width:min(360px,34vw);margin:0">
+        <canvas id="alebexCanvas"></canvas>
+        <a class="orb3d__link" href="https://alebex.ai/#demo" target="_blank" rel="noopener" aria-label="Book an ALEBEX AI demo"></a>
+        <span class="orb3d__tag" style="font-size:1.1rem;padding:.42rem 1.1rem">ALEBEX · Agentic AI</span>
+      </div>
+      <div style="background:#fff;padding:20px;border-radius:20px;box-shadow:0 14px 40px rgba(0,0,0,.45)">
+        <img src="demo_qr.png" alt="QR code linking to the ALEBEX demo" style="width:260px;height:260px;display:block">
+        <div style="text-align:center;color:#06122e;font-size:1rem;font-weight:800;margin-top:10px;letter-spacing:.08em">SCAN TO DEMO</div>
+      </div>
+    </div>
+  </section>
+
+  </div>
+
+<!-- HUD -->
+<div class="hud">
+  <div class="left" id="slidetitle"></div>
+  <div class="nav">
+    <button onclick="go(-1)" aria-label="previous">‹</button>
+    <button onclick="toggleNotes()" aria-label="notes" title="Speaker notes (N)">📝</button>
+    <button onclick="go(1)" aria-label="next">›</button>
+  </div>
+</div>
+<div class="hint">← → arrows to navigate · press <b>N</b> for speaker notes · <b>F</b> for fullscreen</div>
+
+<div class="notes" id="notes">
+  <h4>Speaker notes</h4>
+  <p id="notetext"></p>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  let i=0, lastDir=1;
+  const tot=slides.length;
+  document.getElementById('tot').textContent=tot;
+  function showShots(shots,step){
+    const frames=shots.querySelectorAll('img,video');
+    frames.forEach((fr,idx)=>{
+      const on = idx===step-1;
+      fr.classList.toggle('show', on);
+      if(fr.tagName==='VIDEO'){
+        if(on){ fr.muted=true; try{fr.currentTime=0;}catch(e){} const p=fr.play(); if(p&&p.catch)p.catch(()=>{}); }
+        else { fr.pause(); }
+      }
+    });
+    shots.dataset.step=step;
+    const hint=shots.querySelector('.shint');
+    if(hint){
+      const cur=frames[step-1], cap=cur?cur.getAttribute('data-cap'):'';
+      if(step<=0) hint.textContent='Click to reveal · 0 / '+frames.length;
+      else hint.textContent=(cap?cap+'  ·  ':'')+step+' / '+frames.length;
+    }
+  }
+  function render(){
+    slides.forEach((s,n)=>s.classList.toggle('active',n===i));
+    slides.forEach(s=>s.classList.remove('eco-built'));  // ecosystem icons start hidden each visit
+    document.getElementById('cur').textContent=i+1;
+    document.getElementById('progress').style.width=((i+1)/tot*100)+'%';
+    document.body.classList.toggle('hide-chrome', !!slides[i].dataset.nochrome);
+    document.getElementById('notetext').textContent=slides[i].dataset.notes||'·';
+    const av=slides[i].querySelector('video');
+    if(av && !av.controls){ av.muted=true; av.playbackRate=0.6; const p=av.play(); if(p&&p.catch)p.catch(()=>{}); setTimeout(()=>{av.playbackRate=0.6;},120); }
+    const shots=slides[i].querySelector('.shots');
+    if(shots){ const n=shots.querySelectorAll('img,video').length; showShots(shots, lastDir<0 ? n : 0); }
+  }
+  function go(d){
+    lastDir=d;
+    const shots=slides[i].querySelector('.shots');
+    if(shots){
+      const n=shots.querySelectorAll('img,video').length;
+      const step=+(shots.dataset.step||0);
+      if(d>0 && step<n){ showShots(shots, step+1); return; }
+      if(d<0 && step>1){ showShots(shots, step-1); return; }
+    }
+    // ecosystem slide: first forward click flies the icons in; only then advance
+    const eco=slides[i].querySelector('.eco');
+    if(d>0 && eco && !slides[i].classList.contains('eco-built')){ slides[i].classList.add('eco-built'); return; }
+    // advancing from a slide with data-next opens that page (e.g. the Five Pillars walkthrough)
+    if(d>0 && slides[i].dataset.next){ window.location.href=slides[i].dataset.next; return; }
+    const ni=Math.min(tot-1,Math.max(0,i+d));
+    if(ni!==i){ i=ni; render(); }
+  }
+  function toggleNotes(){document.getElementById('notes').classList.toggle('show');}
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ')go(1);
+    else if(e.key==='ArrowLeft'||e.key==='PageUp')go(-1);
+    else if(e.key.toLowerCase()==='n')toggleNotes();
+    else if(e.key.toLowerCase()==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+    else if(e.key==='Home'){lastDir=1;i=0;render();}
+    else if(e.key==='End'){lastDir=1;i=tot-1;render();}
+  });
+  document.getElementById('deck').addEventListener('click',e=>{
+    if(e.target.closest('a,button,.orb3d,.notes')) return;
+    if(slides[i].querySelector('.shots, .eco')) go(1);
+  });
+  // deep-link: open directly on a slide by #id (e.g. ...#alebex when returning from the walkthrough)
+  if(location.hash){ const t=document.getElementById(location.hash.slice(1)); const idx=t?slides.indexOf(t):-1; if(idx>=0) i=idx; }
+  render();
+</script>
+
+<!-- ALEBEX liquid-metal orb (Three.js, with CSS fallback) -->
+<script type="module">
+import * as THREE from "three";
+const canvas = document.getElementById("alebexCanvas");
+const wrap   = document.getElementById("alebexOrb");
+if (canvas && wrap) try {
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  camera.position.set(0, 0, 4.7);
+  function envTexture() {
+    const c = document.createElement("canvas"); c.width = 512; c.height = 256;
+    const g = c.getContext("2d");
+    const grd = g.createLinearGradient(0, 0, 0, 256);
+    grd.addColorStop(0.00, "#eaf7ff"); grd.addColorStop(0.34, "#9fd6ff");
+    grd.addColorStop(0.52, "#dff2ff"); grd.addColorStop(0.72, "#33b6ff");
+    grd.addColorStop(1.00, "#0a3a7a");
+    g.fillStyle = grd; g.fillRect(0, 0, 512, 256);
+    const rg = g.createRadialGradient(370, 64, 0, 370, 64, 130);
+    rg.addColorStop(0, "rgba(255,255,255,0.95)"); rg.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = rg; g.fillRect(0, 0, 512, 256);
+    const t = new THREE.CanvasTexture(c);
+    t.mapping = THREE.EquirectangularReflectionMapping;
+    return t;
+  }
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const env = pmrem.fromEquirectangular(envTexture()).texture;
+  scene.environment = env;
+  const RAD = 1.2;
+  const geo = new THREE.IcosahedronGeometry(RAD, 16);
+  const basePos = geo.attributes.position.array.slice();
+  const nVerts = geo.attributes.position.count;
+  const stops = [
+    [0.00, new THREE.Color(0xe6f4ff)], [0.30, new THREE.Color(0x9fd9ff)],
+    [0.55, new THREE.Color(0x4fc6ff)], [0.78, new THREE.Color(0x22b8ff)],
+    [1.00, new THREE.Color(0x7fe3e0)],
+  ];
+  function ramp(t) {
+    t = Math.max(0, Math.min(1, t));
+    for (let i = 1; i < stops.length; i++) {
+      if (t <= stops[i][0]) { const a = stops[i-1], b = stops[i]; return a[1].clone().lerp(b[1], (t - a[0]) / (b[0] - a[0])); }
+    }
+    return stops[stops.length - 1][1].clone();
+  }
+  const vcol = new Float32Array(nVerts * 3), cc = new THREE.Color();
+  for (let i = 0; i < nVerts; i++) {
+    const x = basePos[i*3], y = basePos[i*3+1];
+    cc.copy(ramp(((x + y) / (RAD * 2)) * 0.5 + 0.5));
+    vcol[i*3] = cc.r; vcol[i*3+1] = cc.g; vcol[i*3+2] = cc.b;
+  }
+  geo.setAttribute("color", new THREE.BufferAttribute(vcol, 3));
+  const mat = new THREE.MeshPhysicalMaterial({
+    vertexColors: true, color: 0xffffff, metalness: 0.5, roughness: 0.24,
+    clearcoat: 1.0, clearcoatRoughness: 0.3, envMap: env, envMapIntensity: 1.45,
+  });
+  const blob = new THREE.Mesh(geo, mat);
+  scene.add(blob);
+  scene.add(new THREE.AmbientLight(0x3a5a88, 0.8));
+  const key = new THREE.DirectionalLight(0xeaf6ff, 2.4); key.position.set(2, 3, 4); scene.add(key);
+  const rim = new THREE.PointLight(0x22b8ff, 26, 24);    rim.position.set(-3, -1.5, 2); scene.add(rim);
+  const warm = new THREE.PointLight(0x7fe3e0, 12, 18);   warm.position.set(2, -3, -1); scene.add(warm);
+  function resize() { const s = Math.max(1, wrap.clientWidth); renderer.setSize(s, s, false); }
+  resize();
+  window.addEventListener("resize", resize, { passive: true });
+  // re-fit when the closing slide becomes visible (orb lives on a display:none slide until then)
+  new ResizeObserver(() => { resize(); renderer.render(scene, camera); }).observe(wrap);
+  let px = 0, py = 0;
+  wrap.addEventListener("pointermove", (e) => {
+    const b = wrap.getBoundingClientRect();
+    px = ((e.clientX - b.left) / b.width - 0.5) * 2;
+    py = ((e.clientY - b.top) / b.height - 0.5) * 2;
+  });
+  wrap.addEventListener("pointerleave", () => { px = 0; py = 0; });
+  function displace(time, amp) {
+    const pos = geo.attributes.position.array;
+    for (let i = 0; i < nVerts; i++) {
+      const ix = i * 3, iy = ix + 1, iz = ix + 2;
+      const bx = basePos[ix], by = basePos[iy], bz = basePos[iz];
+      const n =
+        Math.sin(bx * 1.4 + time)       * Math.cos(by * 1.6 - time * 0.7) +
+        Math.sin(by * 2.2 + time * 1.1) * Math.cos(bz * 1.9 + time * 0.5) * 0.7 +
+        Math.sin(bz * 1.7 - time * 0.9) * Math.cos(bx * 2.1 + time * 1.3) * 0.6 +
+        Math.sin((bx + by + bz) * 2.7 + time * 1.8) * 0.4;
+      const k = 1 + (n * amp) / 2.7;
+      pos[ix] = bx * k; pos[iy] = by * k; pos[iz] = bz * k;
+    }
+    geo.attributes.position.needsUpdate = true;
+    geo.computeVertexNormals();
+  }
+  let onScreen = false;
+  new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; }).observe(wrap);
+  let t = 0;
+  function tick() {
+    requestAnimationFrame(tick);
+    if (!onScreen) return;
+    t += 0.014;
+    displace(t, 0.6);
+    blob.rotation.y += 0.004;
+    blob.rotation.x += (py * 0.5 - blob.rotation.x) * 0.05;
+    blob.rotation.z += (-px * 0.4 - blob.rotation.z) * 0.05;
+    renderer.render(scene, camera);
+  }
+  displace(0, 0.6);
+  renderer.render(scene, camera);
+  if (!reduce) requestAnimationFrame(tick);
+} catch (e) {
+  console.warn("Alebex orb fell back to CSS:", e && e.message);
+  wrap.classList.add("is-fallback");
+}
+</script>
+</body>
+</html>
