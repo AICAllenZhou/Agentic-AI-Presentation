@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/agentic-ai-presentation.html" }
+  ]
+}
